@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+    </head>
+    <body>
+        <script>
+            var students=[{
+                id:1001,
+                name:"Byron1",
+                age:24
+            },{
+                id:1002,
+                name:"Frank1",
+                age:30
+            },{
+                id:1003,
+                name:"Aaron1",
+                age:26
+            }],
+            db;
+            
+            function initDB(dbName, vertion) {
+                vertion = vertion || 1;
+                var request = indexedDB.open(dbName, vertion);
+                request.onsuccess = function (e) {
+                    console.log("create db success.");
+                    console.log(e);
+                    db = request.result;
+                    addData(db, "students");
+//                    getDataByKey(db, "students", 1001);
+//                    getDateByIndex(db, "students", "Byron");
+//                    updateDataByKey(db, "students", 1001, 333333);
+//                    getDataByKey(db, "students", 1001);
+//                    getDateByIndex(db, "students", "Byron");
+//                    fetchStoreByCursor(db, "students");
+                    getMultipleData(db, "students");
+                };
+                request.onerror = function (err) {
+                    console.log("error: " + err.target.errorCode);
+                };
+                request.onupgradeneeded = function (evt) {
+                    console.log("DB vertion changed.");
+                    console.log(evt);
+//                    var objectStore = evt.currentTarget.result.createObjectStore("people", {keyPath: "id", autoIncrement: true});
+//                    objectStore.createIndex("name", "name", {unique: false});
+//                    objectStore.createIndex("email", "email", {unique: true});
+                    db = evt.target.result;
+                    if (db.objectStoreNames.contains("students")) {
+                        db.deleteObjectStore("students");
+                    }
+                    var store = db.createObjectStore("students", {keyPath: "id"});
+//                        db.createObjectStore("students", {autoIncrement: true});
+                    store.createIndex("nameIndex", "name", {unique: true});
+                    store.createIndex("ageIndex", "age", {unique: false});
+                };
+            }
+            
+            function getMultipleData(db, storeName) {
+                var transaction = db.transaction(storeName);
+                var store = transaction.objectStore(storeName);
+                var index = store.index("ageIndex");
+                var request = index.openCursor(IDBKeyRange.only(26));
+                request.onsuccess = function (e) {
+                    var cursor = e.target.result;
+                    if (cursor) {
+                        console.log(cursor.key);
+                        console.log(cursor.value);
+                        cursor.continue();
+                    }
+                };
+            }
+            
+            function fetchStoreByCursor(db, storeName) {
+                var transaction = db.transaction(storeName);
+                var store = transaction.objectStore(storeName);
+                var request = store.openCursor();
+                request.onsuccess = function (e) {
+                    var cursor = e.target.result;
+                    if (cursor) {
+                        console.log(cursor.key);
+                        var cursorStudent = cursor.value;
+                        console.log(cursorStudent);
+                        cursor.continue();
+                    }
+                };
+            }
+            
+            function getDateByIndex(db, storeName, value) {
+                console.log("get data by index.");
+                var transaction = db.transaction(storeName);
+                var store = transaction.objectStore(storeName);
+                var index = store.index("nameIndex");
+                index.get(value).onsuccess = function (e) {
+                    var student = e.target.result;
+                    console.log(student);
+                };
+            }
+            
+            function addData(db, storeName) {
+                console.log("excute addData.");
+                var transaction = db.transaction(storeName, "readwrite");
+                var store = transaction.objectStore(storeName);
+                for (var i = 0; i < students.length; i++) {
+                    store.add(students[i]);
+                    console.log("add data success.");
+                }
+            }
+            
+            function getDataByKey(db, storeName, value) {
+                console.log("get data.");
+                var transaction = db.transaction(storeName, "readwrite");
+                var store = transaction.objectStore(storeName);
+                var request = store.get(value);
+                request.onsuccess = function (e) {
+                    var student = e.target.result;
+                    console.log(student);
+                };
+            }
+            
+            function updateDataByKey(db, storeName, value, setAgeValue) {
+                console.log("update data.");
+                var transaction = db.transaction(storeName, "readwrite");
+                var store = transaction.objectStore(storeName);
+                var request = store.get(value);
+                request.onsuccess = function (e) {
+                    var student = e.target.result;
+//                    student.age = setAgeValue;
+//                    store.put(student);
+                    
+//                    deleteDataByKey(db, storeName, value);
+                    getDataByKey(db, storeName, value);
+                };
+            }
+            
+            function deleteDataByKey(db, storeName, value) {
+                console.log("delete data.");
+                var transaction = db.transaction(storeName, "readwrite");
+                var store = transaction.objectStore(storeName);
+                store.delete(value);
+//                store.clear();
+            }
+            
+            initDB("openDB", 4);
+        </script>
+    </body>
+</html>
